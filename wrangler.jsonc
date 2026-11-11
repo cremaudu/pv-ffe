@@ -1,0 +1,14 @@
+{
+  "name": "pv-ffe",
+  "main": "src/worker.js",
+  "compatibility_date": "2026-01-01",
+  // Copies durables des pages FFE (l'espace KV est créé automatiquement au premier déploiement)
+  "kv_namespaces": [{ "binding": "CACHE" }],
+  // Recharge des copies : le lundi, toutes les 5 min de 02h00 à 05h55 UTC (03h/04h à Paris selon la saison)
+  "triggers": { "crons": ["*/5 2-5 * * 1"] },
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*"]
+  }
+}
