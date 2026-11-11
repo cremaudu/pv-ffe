@@ -2,7 +2,7 @@
 
 Appli mobile pour les capitaines d'équipes d'échecs : consulter les résultats interclubs de son club et envoyer rapidement les feuilles de match, sans attendre le site de la FFE (echecs.asso.fr), très lent les soirs de match.
 
-Le projet a été écrit pour l'Échiquier Domloupéen. Il s'adapte à un autre club en modifiant quelques fichiers (voir [Adapter à un autre club](#adapter-à-un-autre-club)).
+Le projet a été écrit pour l'Échiquier Domloupéen. Il s'adapte à un autre club en modifiant un seul fichier de configuration (voir [Adapter à un autre club](#adapter-à-un-autre-club)).
 
 > Projet indépendant, sans lien avec la Fédération Française des Échecs. Il lit les pages publiques du site fédéral et remplit le formulaire de saisie à la place du capitaine, avec ses propres identifiants.
 
@@ -51,20 +51,26 @@ node dev.mjs          # http://localhost:8787
 
 ## Adapter à un autre club
 
-| Fichier | À modifier |
+Tout se règle dans `public/config.js` :
+
+| Réglage | Rôle |
 | --- | --- |
-| `public/config.js` | `saison`, nom du club, `ref` du club, numéros des groupes suivis, nombre d'échiquiers par défaut |
-| `public/index.html` | titre de la page et nom affiché dans l'en-tête |
-| `public/manifest.webmanifest` | nom de l'appli installée |
-| `public/logo.png`, `public/icon.svg` | logo et icône du club |
-| `public/style.css` | couleurs, sur la première ligne (`--noir`, `--jaune`, `--bleu`) |
-| `wrangler.jsonc` | `name`, qui donne le début de l'adresse de l'appli |
+| `saison` | saison en cours, à changer chaque rentrée |
+| `appli` | nom de l'appli (titre et nom une fois installée) |
+| `club.nom` | début du nom des équipes dans les classements FFE, affiché dans l'en-tête |
+| `club.nomComplet` | nom complet du club |
+| `club.ref` | numéro du club à la FFE |
+| `club.logo` | image de l'en-tête, à déposer dans `public/` |
+| `couleurs` | bandeau du haut, couleur d'accent, boutons |
+| `groupes` | numéros des groupes où jouent les équipes du club |
+| `echiquiers` | nombre d'échiquiers proposé par défaut |
+
+Deux éléments restent hors de ce fichier : l'icône de l'appli (`public/icon.svg`, à remplacer) et le nom du déploiement (`name` dans `wrangler.jsonc`), qui donne le début de l'adresse.
 
 Où trouver les valeurs de `config.js` sur le site FFE :
 
 - **`ref`** : le nombre après `ClubRef=` dans l'adresse de la fiche du club (`FicheClub.aspx?Ref=…` ou `ListeEquipes.aspx?ClubRef=…`).
 - **`groupes`** : le nombre après `Groupe=` dans l'adresse de la page de chaque groupe où joue une équipe du club (`Equipes.aspx?Groupe=…`).
-- **`nom`** : le début du nom des équipes tel qu'il apparaît dans les classements (« Domloup » pour « Domloup 3 »).
 
 Les équipes, leurs identifiants et leurs adversaires sont ensuite déduits des pages FFE.
 

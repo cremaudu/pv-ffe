@@ -202,8 +202,11 @@ let cfgMemo; // lue une fois par instance du worker (un déploiement en crée de
 function config(env) {
   return (cfgMemo ??= (async () => {
     const js = await (await env.ASSETS.fetch(new Request('https://assets/config.js'))).text();
+    const chaine = (cle) => js.match(new RegExp(cle + ':\\s*([\'"])(.*?)\\1'))?.[2];
     return {
-      saison: js.match(/saison:\s*'([^']+)'/)[1],
+      appli: chaine('appli') ?? 'PV FFE',
+      entete: chaine('entete') ?? '#161616',
+      saison: chaine('saison'),
       club: +js.match(/ref:\s*(\d+)/)[1],
       groupes: js.match(/groupes:\s*\[([^\]]*)\]/)[1].split(',').map(Number).filter(Boolean),
     };
@@ -279,6 +282,14 @@ export default {
     try {
       const env = await parSaison(envBrut);
       let m;
+      // Manifeste de l'appli installée : nom et couleur lus dans config.js
+      if (u.pathname === '/manifest.webmanifest') {
+        const cfg = await config(envBrut);
+        return new Response(JSON.stringify({
+          name: cfg.appli, short_name: 'PV FFE', start_url: '/', display: 'standalone', background_color: '#f4f4f2', theme_color: cfg.entete,
+          icons: [{ src: 'icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' }],
+        }), { headers: { 'Content-Type': 'application/manifest+json; charset=utf-8' } });
+      }
       if ((m = u.pathname.match(/^\/api\/groupe\/(\d+)\/ronde\/(\d+)$/))) {
         const d = await detailRonde(m[1], m[2], env, fresh);
         return json(d.data, 200, d.t);

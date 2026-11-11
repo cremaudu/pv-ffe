@@ -1,6 +1,6 @@
 // Coquille hors ligne : réseau d'abord, cache en secours (les données API ne sont pas mises en cache ici).
-const C = 'pv-ffe-v2';
-const SHELL = ['/', '/app.js', '/config.js', '/style.css', '/manifest.webmanifest', '/icon.svg', '/logo.png'];
+const C = 'pv-ffe-v3';
+const SHELL = ['/', '/app.js', '/config.js', '/style.css', '/manifest.webmanifest', '/icon.svg'];
 self.addEventListener('install', (e) => e.waitUntil(caches.open(C).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting())));
 self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
 self.addEventListener('fetch', (e) => {

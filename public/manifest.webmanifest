@@ -1,9 +1,0 @@
-{
-  "name": "PV FFE Domloup",
-  "short_name": "PV FFE",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#f4f4f2",
-  "theme_color": "#161616",
-  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
-}

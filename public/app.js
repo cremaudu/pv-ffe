@@ -2,6 +2,17 @@
 const CFG = window.CONFIG;
 const $vue = document.getElementById('vue');
 const $modal = document.getElementById('modal');
+// Identité du club (config.js) : titre, en-tête, couleurs
+{
+  const c = CFG.couleurs ?? {}, r = document.documentElement.style;
+  if (c.entete) { r.setProperty('--noir', c.entete); document.querySelector('meta[name="theme-color"]').content = c.entete; }
+  if (c.accent) r.setProperty('--jaune', c.accent);
+  if (c.bouton) r.setProperty('--bleu', c.bouton);
+  document.title = CFG.appli ?? 'PV FFE';
+  document.getElementById('club').textContent = CFG.club.nom;
+  const logo = document.getElementById('logo');
+  if (CFG.club.logo) { logo.src = CFG.club.logo; logo.alt = CFG.club.nomComplet ?? CFG.club.nom; logo.hidden = false; }
+}
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 // Tout ce que le téléphone garde est rangé sous la saison de config.js : la FFE réattribue les numéros
 // de groupe d'une saison à l'autre. Au changement de saison, les anciennes données sont effacées.

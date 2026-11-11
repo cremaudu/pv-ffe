@@ -22,7 +22,7 @@ const port = +process.argv[2] || 8787;
 
 createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
-  if (url.pathname.startsWith('/api/')) {
+  if (url.pathname.startsWith('/api/') || url.pathname === '/manifest.webmanifest') {
     const chunks = [];
     for await (const c of req) chunks.push(c);
     const init = req.method === 'POST' ? { method: 'POST', body: Buffer.concat(chunks), headers: { 'Content-Type': 'application/json' } } : {};
