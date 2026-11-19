@@ -50,7 +50,7 @@ Ne **jamais** déclencher `LinkCmdSave` sur `SaisiePV.aspx` pendant le développ
 - Worker : `POST /api/pv/ouvrir` (connexion + GET `SaisiePV.aspx`) et `POST /api/pv/etape` (un postback ; cibles en liste blanche ; `LinkCmdSave` exige `confirme: true`). Le worker est sans état : le client renvoie à chaque étape le cookie de session et tous les champs du formulaire (`parseForm`).
 - Client (`envoyer()` dans `app.js`) : compétition → division → groupe → équipe gauche → équipe droite (un postback chacun, ~30 s), contrôle du nombre d'échiquiers et du barème (`CalculerPoints(n,'Adulte')` lu dans la page), puis soit arrêt (« Tester sans enregistrer »), soit postback `LinkCmdSave`. L'enregistrement n'est jamais retenté automatiquement.
 - Champs joueurs/capitaines/arbitre : on envoie la ligne complète de l'autocomplétion (`CODE - NOM Prénom Elo`). Points : `DropPtsBl/Nr` = nombre de victoires (`"2.0"`), `DropPtsMatch` = 3 victoire / 2 nul / 1 défaite.
-- Envoi bloqué (`manques()`) tant qu'il manque un résultat, un code FFE, un capitaine ou un arbitre licencié FFE ; « Tester sans enregistrer » reste possible.
+- Envoi bloqué (`manques()`) tant qu'il manque un résultat, un code FFE, un capitaine, ou un commentaire quand aucun arbitre FFE n'est choisi (l'arbitre est facultatif : certaines divisions acceptent un arbitre sans titre, nommé alors dans le commentaire) ; « Tester sans enregistrer » reste possible.
 - **Jamais validé en réel** : format exact attendu par le serveur pour les champs texte, et texte de confirmation après enregistrement (on cherche « enregistr »).
 
 ## État d'avancement

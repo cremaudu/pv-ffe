@@ -262,7 +262,7 @@ function texteRecap(f) {
   const [g, d] = score(f);
   const l = [`Ronde ${ronde} — ${f.gauche} ${g} - ${d} ${f.droite}`, ''];
   f.ech.forEach((e, i) => l.push(`${i + 1}. ${lib(e.g)}  [${LIB_RES[e.res] ?? '?'}]  ${lib(e.d)}`));
-  l.push('', `Capitaines : ${lib(f.capG)} / ${lib(f.capD)}`, `Arbitre : ${f.arbitre?.ffe ?? 'aucun'}`);
+  l.push('', `Capitaines : ${lib(f.capG)} / ${lib(f.capD)}`, `Arbitre : ${f.arbitre?.ffe ?? (f.arbitre?.nom ? f.arbitre.nom + ' (non arbitre FFE, voir commentaire)' : 'aucun arbitre FFE (voir commentaire)')}`);
   if (f.commentaire) l.push('Commentaire : ' + f.commentaire);
   return l.join('\n');
 }
@@ -278,7 +278,8 @@ function manques(f) {
   if (doubles.length) m.push('joueur en double (' + doubles.join(', ') + ')');
   if (!f.capG?.ffe) m.push('capitaine ' + f.gauche);
   if (!f.capD?.ffe) m.push('capitaine ' + f.droite);
-  if (!f.arbitre?.ffe) m.push('arbitre FFE');
+  // Arbitre facultatif (certaines divisions acceptent un arbitre sans titre FFE) : son nom va alors dans le commentaire
+  if (!f.arbitre?.ffe && !f.commentaire?.trim()) m.push('commentaire avec le nom de l’arbitre (aucun arbitre FFE choisi)');
   return m;
 }
 
@@ -341,8 +342,8 @@ function vueFeuille() {
         <label>Capitaine ${esc(f.gauche)}</label><div class="joueur">${selPersonne([f.gauche], f.capG, 'data-cap="capG"')}</div>
         <label>Capitaine ${esc(f.droite)}</label><div class="joueur">${selPersonne([f.droite], f.capD, 'data-cap="capD"')}</div>
         <label>Arbitre</label><div class="joueur">${selPersonne([f.gauche, f.droite], f.arbitre, 'id="arbitre"', 'Autre arbitre (recherche)…')}</div>
-        ${f.arbitre?.inconnu ? `<p class="err">${esc(f.arbitre.nom)} n'est pas arbitre à la FFE : l'envoi est bloqué tant qu'aucun arbitre FFE n'est choisi.</p>` : f.arbitre?.ffe ? `<p class="note">${esc(f.arbitre.ffe)}</p>` : ''}
-        <label>Commentaire et réclamations</label><textarea id="com" rows="2">${esc(f.commentaire)}</textarea>
+        ${f.arbitre?.inconnu ? `<p class="err">${esc(f.arbitre.nom)} n'est pas arbitre à la FFE : le champ arbitre partira vide. Indique son nom dans le commentaire.</p>` : f.arbitre?.ffe ? `<p class="note">${esc(f.arbitre.ffe)}</p>` : '<p class="note">Sans arbitre FFE, indique dans le commentaire qui a arbitré.</p>'}
+        <label>Commentaire et réclamations${f.arbitre?.ffe ? '' : ' (obligatoire sans arbitre FFE)'}</label><textarea id="com" rows="2" placeholder="${f.arbitre?.ffe ? '' : 'Arbitre : NOM Prénom'}">${esc(f.commentaire)}</textarea>
       </div>
       <div class="ligne" style="margin-top:10px"><button class="btn plein" id="recap">Récapitulatif</button><button class="btn" id="vider">Effacer la feuille</button></div>
       <p class="note">Enregistré automatiquement sur ce téléphone.</p></div>`;
@@ -477,7 +478,8 @@ async function envoyer(f, reel) {
     if (form.echiquiers !== f.ech.length) throw new Error(`Le formulaire FFE attend ${form.echiquiers} échiquiers, la feuille en a ${f.ech.length}.`);
     if (form.regle && form.regle !== 'Adulte') throw new Error(`Barème « ${form.regle} » non géré par l'appli : saisir cette feuille sur le site FFE.`);
     const valeurs = champsFeuille(f);
-    const inconnus = Object.keys(valeurs).filter((k) => !(k in form.champs) && !k.endsWith('TextCommentaire')); // commentaire facultatif
+    // Commentaire toléré absent du formulaire, sauf s'il porte le nom de l'arbitre (aucun arbitre FFE choisi)
+    const inconnus = Object.keys(valeurs).filter((k) => !(k in form.champs) && !(k.endsWith('TextCommentaire') && f.arbitre?.ffe));
     if (inconnus.length) throw new Error('Champs absents du formulaire FFE : ' + inconnus.map((k) => k.replace(PF, '')).join(', '));
     if (!reel) {
       e.bilanOk = true;

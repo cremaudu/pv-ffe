@@ -83,4 +83,4 @@ La FFE réattribue les numéros de groupe chaque saison. À la rentrée, mettre 
 - Le site FFE met jusqu'à 30 secondes par page : le premier affichage d'une page jamais lue est lent, et un envoi de feuille prend 4 à 5 minutes.
 - L'appli lit le site FFE en analysant ses pages : une refonte du site fédéral la casserait.
 - Un joueur qui dispute son premier match n'apparaît dans la liste de son équipe que le lundi suivant ; la recherche permet de le saisir d'ici là.
-- L'envoi est bloqué tant que les deux capitaines et un arbitre licencié FFE ne sont pas renseignés.
+- L'envoi est bloqué tant que les deux capitaines ne sont pas renseignés. L'arbitre est facultatif (certaines divisions acceptent un arbitre sans titre FFE) ; sans arbitre FFE, le commentaire devient obligatoire pour indiquer qui a arbitré.
