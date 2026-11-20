@@ -52,7 +52,7 @@ Le détail des parties d'une ronde suit une règle à part : une ronde entièrem
 Chaque lundi, le relais relit lui-même toutes les pages utiles sur le site FFE, pour que tout soit prêt le reste de la semaine.
 
 - **Horaire** : un passage toutes les 5 minutes, de 3h00 à 6h55 en hiver et de 4h00 à 7h55 en été (heure de Paris). Cloudflare ne connaît que l'heure universelle : 02h00 à 05h55 UTC.
-- **Rythme** : 4 pages par passage, soit jusqu'à 192 pages dans la matinée, pour environ 150 nécessaires. La recharge est étalée parce que le site FFE est lent et que Cloudflare limite la durée de chaque passage.
+- **Rythme** : 4 pages par passage, soit jusqu'à 192 pages dans la matinée, pour une centaine nécessaires (95 lors de la première recharge). La recharge est étalée parce que le site FFE est lent et que Cloudflare limite la durée de chaque passage.
 - **En cas d'échec** d'une page : elle est remise en fin de file et retentée, 3 essais au plus.
 
 Ordre de traitement :
@@ -64,7 +64,7 @@ Ordre de traitement :
 
 Les équipes d'un club adverse engagées dans un groupe non suivi ne sont pas chargées.
 
-**Suivi** : la page <https://pv-ffe.domloup.workers.dev/api/cron> donne l'heure de début, le nombre de pages faites, le reste à faire et les échecs. Au 11 novembre 2026, cette recharge n'a encore jamais tourné chez Cloudflare : elle n'a été testée qu'en local.
+**Suivi** : la page <https://pv-ffe.domloup.workers.dev/api/cron> donne l'heure de début, le nombre de pages faites, le reste à faire et les échecs. La première recharge chez Cloudflare a tourné le dimanche 15 novembre 2026 au lieu du lundi (95 pages, aucun échec) ; l'horaire a été corrigé le 20 novembre.
 
 ## Récapitulatif par type de donnée
 

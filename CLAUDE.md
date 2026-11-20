@@ -55,4 +55,4 @@ Ne **jamais** déclencher `LinkCmdSave` sur `SaisiePV.aspx` pendant le développ
 
 ## État d'avancement
 
-Étapes 1 à 3 écrites ; « Tester sans enregistrer » validé sur le site FFE. L'enregistrement réel reste à valider sur un vrai match, et la recharge planifiée n'avait pas encore tourné chez Cloudflare au 11 novembre 2026.
+Étapes 1 à 3 écrites ; « Tester sans enregistrer » validé sur le site FFE. L'enregistrement réel reste à valider sur un vrai match. La recharge planifiée a tourné chez Cloudflare le 15 novembre 2026 (95 pages, aucun échec), mais un dimanche : dans les crons Cloudflare, `1` = dimanche ; d'où `MON` dans `wrangler.jsonc`.
