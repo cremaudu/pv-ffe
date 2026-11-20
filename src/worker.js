@@ -9,15 +9,14 @@ const ENT = {
   euro: '€', rsquo: '’', lsquo: '‘', ldquo: '“', rdquo: '”', laquo: '«', raquo: '»', deg: '°', hellip: '…', ndash: '–', mdash: '—', bull: '•',
 };
 const car = (n) => { try { return String.fromCodePoint(n); } catch { return ''; } }; // emojis compris (&#x1F3C6;)
-// decode et cells servent aussi au relais du calendrier (calendrier/worker.js)
-export const decode = (s) =>
+const decode = (s) =>
   s.replace(/<[^>]*>/g, '')
     .replace(/&#(\d+);/g, (_, n) => car(+n))
     .replace(/&#x([0-9a-f]+);/gi, (_, n) => car(parseInt(n, 16)))
     .replace(/&(\w+);/g, (m, n) => ENT[n] ?? m)
     .replace(/\s+/g, ' ')
     .trim();
-export const cells = (row) => [...row.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map((m) => m[1]);
+const cells = (row) => [...row.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map((m) => m[1]);
 
 export function parseGroupe(html) {
   const rondes = [];

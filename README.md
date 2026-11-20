@@ -78,21 +78,6 @@ Les équipes, leurs identifiants et leurs adversaires sont ensuite déduits des 
 
 La FFE réattribue les numéros de groupe chaque saison. À la rentrée, mettre à jour `saison` et `groupes` dans `public/config.js`, puis redéployer. Les anciennes copies sont alors ignorées par le relais et effacées des téléphones.
 
-## Calendrier des tournois
-
-Le dossier `calendrier/` contient une seconde appli, indépendante de la première : le calendrier des tournois à cadence lente de quelques ligues (Bretagne, Pays de la Loire et Normandie par défaut). Elle est publiée à sa propre adresse, du type `https://calendrier-ffe.<votre-compte>.workers.dev`.
-
-- **Contenu** : les annonces de tournois à cadence lente du site FFE, avec pour chacun le détail de sa fiche (dates, cadence, nombre de rondes, inscription, prix, contact, annonce de l'organisateur). Recherche par ville, tournoi ou organisateur, filtre par ligue, et tournois jeunes (championnats U10, U12…, « Open Jeunes ») masqués sauf si on coche la case qui les affiche.
-- **Fraîcheur** : le relais relit la liste et les fiches chaque nuit. Les visiteurs ne déclenchent jamais de lecture du site FFE : tout s'affiche instantanément.
-- **Réglages** : `calendrier/public/config.js` (nom de l'appli, ligues affichées, tournois jeunes affichés ou non à la première visite, couleurs).
-
-```sh
-npx wrangler deploy -c calendrier/wrangler.jsonc   # ou : npm run deploy:calendrier
-node dev.mjs 8788 calendrier                       # en local : http://localhost:8788
-```
-
-Après le premier déploiement, la liste apparaît en un quart d'heure environ et le détail des fiches en moins d'une heure (4 pages toutes les 5 minutes). Ensuite, tout se met à jour chaque nuit.
-
 ## Limites connues
 
 - Le site FFE met jusqu'à 30 secondes par page : le premier affichage d'une page jamais lue est lent, et un envoi de feuille prend 4 à 5 minutes.
