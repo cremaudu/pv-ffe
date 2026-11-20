@@ -1,9 +1,13 @@
 // Serveur local de secours (sans wrangler) : sert public/ et fait tourner le worker dans Node.
-// Usage : node dev.mjs [port]
+// Usage : node dev.mjs [port]                 appli PV (public/ et src/worker.js), port 8787 par défaut
+//         node dev.mjs [port] calendrier      calendrier (calendrier/public/ et calendrier/worker.js), port 8788
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
-import worker, { recharger } from './src/worker.js';
+
+const calendrier = process.argv[3] === 'calendrier';
+const PUB = calendrier ? join('calendrier', 'public') : 'public';
+const { default: worker, recharger } = await import(calendrier ? './calendrier/worker.js' : './src/worker.js');
 
 const mem = new Map();
 // Faux KV en mémoire + accès aux fichiers de public/ pour le worker
@@ -14,11 +18,11 @@ const env = {
     async getWithMetadata(k, type) { const e = kv.get(k); return { value: e ? (type === 'json' ? JSON.parse(e.value) : e.value) : null, metadata: e?.metadata ?? null }; },
     async put(k, value, o) { kv.set(k, { value, metadata: o?.metadata ?? null }); },
   },
-  ASSETS: { fetch: async (r) => new Response(await readFile(join('public', new URL(r.url).pathname))) },
+  ASSETS: { fetch: async (r) => new Response(await readFile(join(PUB, new URL(r.url).pathname))) },
 };
 globalThis.caches = { default: { match: async (k) => mem.get(k.url)?.clone(), put: async (k, r) => void mem.set(k.url, r) } };
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.webmanifest': 'application/manifest+json' };
-const port = +process.argv[2] || 8787;
+const port = +process.argv[2] || (calendrier ? 8788 : 8787);
 
 createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
@@ -32,7 +36,7 @@ createServer(async (req, res) => {
   }
   const file = normalize(url.pathname === '/' ? '/index.html' : url.pathname);
   try {
-    const data = await readFile(join('public', file));
+    const data = await readFile(join(PUB, file));
     res.writeHead(200, { 'Content-Type': TYPES[extname(file)] ?? 'application/octet-stream' });
     res.end(data);
   } catch { res.writeHead(404); res.end('404'); }

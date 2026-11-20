@@ -108,3 +108,12 @@ Toutes les copies, sur le relais comme sur le téléphone, sont rangées sous la
 
 - le relais repart de copies neuves (les anciennes restent stockées mais ne sont plus lues) ;
 - chaque téléphone efface ses anciennes données à la première ouverture, y compris les feuilles de match de la saison passée.
+
+## Le calendrier des tournois
+
+Le calendrier (`calendrier-ffe.domloup.workers.dev`) a son propre relais et son propre espace de stockage, sans rien de commun avec celui des capitaines. Il suit le même principe, poussé plus loin : **le site FFE n'est jamais lu à la demande d'un visiteur**.
+
+- **Chaque nuit**, de 1h00 à 2h55 en hiver et de 2h00 à 3h55 en été (heure de Paris), le relais relit la liste nationale des tournois à cadence lente (5 pages en novembre 2026), garde ceux des ligues choisies, puis lit les fiches des tournois nouveaux et celles lues il y a plus d'une semaine. Il travaille à 4 pages par passage, toutes les 5 minutes. Le tout premier cycle part dès le déploiement.
+- **Une liste incomplète** (page FFE en échec trois fois) ne remplace pas celle de la veille.
+- **Le téléphone** garde la dernière liste reçue, l'affiche tout de suite, puis demande au relais sa version, qui arrive en une fraction de seconde. Les tournois terminés disparaissent de l'affichage même si la liste n'a pas encore été relue.
+- **Suivi** : <https://calendrier-ffe.domloup.workers.dev/api/cron>.

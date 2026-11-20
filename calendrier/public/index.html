@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#161616">
+<title>Calendrier FFE</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg">
+<link rel="stylesheet" href="style.css">
+<script src="config.js"></script>
+</head>
+<body>
+<header>
+  <h1 id="titre"></h1>
+  <span id="sous-titre"></span>
+</header>
+<main>
+  <div class="chips" id="ligues"></div>
+  <input id="q" type="search" placeholder="Rechercher : ville, tournoi, organisateur…" autocomplete="off">
+  <p class="note" id="etat"></p>
+  <div id="liste"></div>
+  <p class="note">Source : annonces de tournois à cadence lente du site de la FFE (echecs.asso.fr), relues chaque nuit. Site indépendant, sans lien avec la Fédération Française des Échecs.</p>
+</main>
+<script src="app.js"></script>
+</body>
+</html>

@@ -9,8 +9,9 @@ Application web mobile (PWA) pour les capitaines d'équipes d'échecs d'un club 
 ## Commandes
 
 - `node dev.mjs [port]` — serveur local (sert `public/` et exécute le worker dans Node). À préférer en local : `wrangler dev` démarre mais ses requêtes sortantes vers la FFE échouent sur ce poste (« internal error »).
-- `npx wrangler deploy` — déploiement Cloudflare Workers (après `npx wrangler login`).
-- `node --check public/app.js` puis `node --check src/worker.js` — vérification de syntaxe. Il n'y a ni tests ni linter.
+- `node dev.mjs 8788 calendrier` — idem pour le calendrier (`calendrier/public/` et `calendrier/worker.js`).
+- `npx wrangler deploy` — déploiement Cloudflare Workers (après `npx wrangler login`). Calendrier : `npx wrangler deploy -c calendrier/wrangler.jsonc`.
+- `node --check public/app.js` puis `node --check src/worker.js` (et `calendrier/worker.js`, `calendrier/public/app.js`) — vérification de syntaxe. Il n'y a ni tests ni linter.
 
 ## Architecture
 
@@ -27,6 +28,14 @@ Application web mobile (PWA) pour les capitaines d'équipes d'échecs d'un club 
 - Cache : `localStorage` côté téléphone (`c:<chemin>` pour les données, `feuille:<idEquipe>:<ronde>` pour les feuilles) ; affichage immédiat depuis le cache puis rafraîchissement. Côté relais, chaque page FFE est copiée dans KV (`env.CACHE`, clés `p:<chemin FFE>` et `r:<groupe>:<ronde>`) et servie telle quelle avec son âge (`X-Age`) ; l'appli redemande `?fresh` quand la copie d'un groupe dépasse 10 min. Fiches clubs et listes de joueurs ne sont jamais relues à la demande de l'appli : seulement le lundi (ou si le relais n'en a aucune copie).
 - Tâche planifiée (`scheduled` → `recharger()`), le lundi de 02h00 à 05h55 UTC toutes les 5 min : file d'attente dans KV (`cron:etat`), 4 pages par passage — fiche club, groupes, puis clubs adverses, listes de joueurs et détails des rondes jouées. `GET /api/cron` en donne l'état. En local, `GET /api/dev-cron` exécute un passage (faux KV en mémoire dans `dev.mjs`).
 - Score du match : repris de `inc_equipe.js` de la FFE — seules les victoires (forfaits compris) comptent, une nulle vaut 0 (sauf règles « Criterium » et « Jeune », non gérées).
+
+## Calendrier des tournois (second Worker)
+
+- `calendrier/` — Worker indépendant `calendrier-ffe` (`calendrier/wrangler.jsonc`, son propre KV et son cron) : tournois à cadence lente annoncés dans les ligues de `calendrier/public/config.js` (`ligues: ['BRE', 'PDL', 'NOR']`), avec le détail de leur fiche. Lecture seule, aucune page authentifiée. Il importe `decode`, `cells` et `parseForm` de `src/worker.js`.
+- Source : `ListeTournois.aspx?Action=ANNONCE&Level=1` (bouton « Cadence lente » de `Tournois.aspx`), liste **nationale** des tournois à venir, 40 par page (5 pages, 194 tournois en novembre 2026). Pages suivantes : postback `PagerFooter` avec le numéro de page en `__EVENTARGUMENT`, possible directement depuis le formulaire de la page 1 ; la flèche `PagerFooter','d'` manque sur la dernière page. Les dates « 21 nov. » prennent l'année des lignes `RowRupture` (« novembre 2026 »).
+- La FFE ne filtre pas ces annonces par ligue (`Ligue=` est ignoré ; les listes `TOURNOICOMITE` mélangent cadences et tournois passés) : tri sur la colonne département, table `LIGUES` dans `calendrier/worker.js` (codes à deux caractères : `01`, `2A`).
+- Fiche `FicheTournoi.aspx?Ref=` (sans formulaire `aspnetForm` : une page complète se reconnaît à `id="ctl00_divfooter"`) : `LabelDates`, puis des lignes `Row<Champ>` libellé / valeur (cadence `1h30 + [30'']`, rondes, prix, inscriptions, contact…), parfois un lien relatif (`RowPdf` : annonce de l'organisateur en PDF, règlement intérieur), et `RowAnnonce` (HTML libre : liens d'inscription, emojis `&#x1F3C6;`).
+- Rien n'est lu à la demande : `/api/tournois` sert la clé KV `calendrier` (liste + fiches assemblées par `publier()`). Cron toutes les 5 min, mais un seul cycle par nuit (00h00-01h55 UTC) et un premier dès le déploiement : pages de la liste, puis fiches nouvelles ou de plus de 7 jours (clés `f:<ref>`, expiration 120 jours). Une liste incomplète ne remplace pas la précédente (clé `liste`). `GET /api/cron` donne l'état ; en local `GET /api/dev-cron`.
 
 ## Changement de saison
 

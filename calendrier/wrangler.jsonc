@@ -1,0 +1,17 @@
+// Calendrier des tournois : second Worker, indépendant de l'appli PV (adresse calendrier-ffe.<compte>.workers.dev).
+// Déploiement depuis la racine du dépôt : npx wrangler deploy -c calendrier/wrangler.jsonc
+{
+  "name": "calendrier-ffe",
+  "main": "worker.js",
+  "compatibility_date": "2026-01-01",
+  // Copies des pages FFE, propres au calendrier (l'espace KV est créé automatiquement au premier déploiement)
+  "kv_namespaces": [{ "binding": "CACHE" }],
+  // Toutes les 5 min : le code ne lance qu'un cycle par nuit, de 00h00 à 01h55 UTC (01h/02h à Paris selon la saison),
+  // et un premier cycle dès le déploiement. Hors cycle, un passage se limite à une lecture KV.
+  "triggers": { "crons": ["*/5 * * * *"] },
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*", "/manifest.webmanifest"]
+  }
+}
