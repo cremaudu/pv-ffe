@@ -15,6 +15,9 @@ a { color:var(--bleu); }
 .chips button.actif { background:var(--noir); color:var(--jaune); border-color:var(--jaune); font-weight:600; }
 .chips button.actif small { color:inherit; }
 input[type=search] { font:inherit; width:100%; padding:9px; border:1px solid var(--trait); border-radius:8px; background:var(--carte); color:var(--txt); }
+.option { display:flex; align-items:center; gap:8px; margin-top:10px; font-size:14px; cursor:pointer; }
+.option[hidden] { display:none; }
+.option input { width:18px; height:18px; margin:0; accent-color:var(--bleu); }
 h2.mois { font-size:13px; text-transform:uppercase; letter-spacing:.05em; color:var(--gris); margin:20px 0 6px; }
 details.tournoi { background:var(--carte); border-radius:10px; margin-bottom:8px; box-shadow:0 1px 2px #0002; }
 details.tournoi summary { list-style:none; display:flex; gap:12px; padding:10px 12px; cursor:pointer; }
