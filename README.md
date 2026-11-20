@@ -82,9 +82,9 @@ La FFE réattribue les numéros de groupe chaque saison. À la rentrée, mettre 
 
 Le dossier `calendrier/` contient une seconde appli, indépendante de la première : le calendrier des tournois à cadence lente de quelques ligues (Bretagne, Pays de la Loire et Normandie par défaut). Elle est publiée à sa propre adresse, du type `https://calendrier-ffe.<votre-compte>.workers.dev`.
 
-- **Contenu** : les annonces de tournois à cadence lente du site FFE, avec pour chacun le détail de sa fiche (dates, cadence, nombre de rondes, inscription, prix, contact, annonce de l'organisateur). Recherche par ville, tournoi ou organisateur, filtre par ligue, et championnats jeunes (U10, U12…) masqués sauf si on coche la case qui les affiche.
+- **Contenu** : les annonces de tournois à cadence lente du site FFE, avec pour chacun le détail de sa fiche (dates, cadence, nombre de rondes, inscription, prix, contact, annonce de l'organisateur). Recherche par ville, tournoi ou organisateur, filtre par ligue, et tournois jeunes (championnats U10, U12…, « Open Jeunes ») masqués sauf si on coche la case qui les affiche.
 - **Fraîcheur** : le relais relit la liste et les fiches chaque nuit. Les visiteurs ne déclenchent jamais de lecture du site FFE : tout s'affiche instantanément.
-- **Réglages** : `calendrier/public/config.js` (nom de l'appli, ligues affichées, championnats jeunes affichés ou non à la première visite, couleurs).
+- **Réglages** : `calendrier/public/config.js` (nom de l'appli, ligues affichées, tournois jeunes affichés ou non à la première visite, couleurs).
 
 ```sh
 npx wrangler deploy -c calendrier/wrangler.jsonc   # ou : npm run deploy:calendrier

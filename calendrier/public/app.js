@@ -17,7 +17,7 @@ const norm = (s) => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toL
 
 let cal = lire('calendrier'); // dernière réponse du relais : { t, ligues, tournois }
 let ligue = lire('ligue', '');
-let jeunes = lire('jeunes', CFG.jeunes ?? false); // championnats jeunes affichés
+let jeunes = lire('jeunes', CFG.jeunes ?? false); // tournois jeunes affichés
 let etat = '';
 const ouverts = new Set();
 
@@ -31,9 +31,9 @@ const quand = (t) => {
 };
 // Notation FFE « 1h30 + [30''] » → « 1h30 + 30 s par coup »
 const cadence = (s) => String(s ?? '').replace(/\[(\d+)''\]/g, '$1 s par coup');
-// Championnat jeunes : catégorie d'âge dans le nom (« Manche Jeunes 2026 U10 », « Championnat Morbihan mixte 2026 U12 »)
-// ou championnat dit « jeunes ». Un « Open Jeunes » de festival reste affiché.
-const JEUNES = /\bU ?\d{1,2}\b|championnat.*\bjeunes\b/i;
+// Tournoi jeunes : catégorie d'âge dans le nom (« Championnat Morbihan mixte 2026 U12 ») ou mot « jeunes »
+// (« Manche Jeunes 2026 U10 », « Open FIDE de Sucé-sur-Erdre - Open Jeunes »). « Open U1600 » ou « -1700 » ne comptent pas.
+const JEUNES = /\bU ?\d{1,2}\b|\bjeunes\b/i;
 // Texte FFE échappé, avec adresses web et e-mails cliquables (le découpage capture les liens aux indices impairs)
 const lier = (s) => String(s ?? '').split(/(https?:\/\/[^\s<>"]*[^\s<>".,;:)]|[\w.+-]+@[\w-]+(?:\.[\w-]+)+)/)
   .map((p, i) => (i % 2 === 0 ? esc(p) : p.startsWith('http')
@@ -90,11 +90,11 @@ function rendre() {
   const retenu = (t) => (!ligue || t.ligue === ligue)
     && (!q || norm([t.nom, t.ville, t.dep, t.fiche?.cadence, ...(t.fiche?.infos ?? []).map((x) => x[1])].join(' ')).includes(q));
   const visibles = tous.filter(retenu);
-  // Case « championnats jeunes », avec le nombre de ceux masqués pour la ligue et la recherche en cours
+  // Case « tournois jeunes », avec le nombre de ceux masqués pour la ligue et la recherche en cours
   const masques = jeunes ? 0 : futurs.filter((t) => JEUNES.test(t.nom) && retenu(t)).length;
   $('jeunes-option').hidden = !futurs.some((t) => JEUNES.test(t.nom));
   $('jeunes').checked = jeunes;
-  $('jeunes-txt').textContent = 'Afficher les championnats jeunes' + (masques ? ` (${masques})` : '');
+  $('jeunes-txt').textContent = 'Afficher les tournois jeunes' +(masques ? ` (${masques})` : '');
   let h = '', mois = '';
   for (const t of visibles) {
     const m = t.debut.slice(0, 7);
