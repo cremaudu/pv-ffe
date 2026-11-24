@@ -331,7 +331,9 @@ export default {
         const d = parseImprime(pv.text, cal.text);
         // La feuille vierge « Interclubs » a toujours 8 lignes, même en N4 (6 échiquiers) : dès qu'une ronde
         // est jouée, on compte ses parties (la FFE complète avec des lignes vides, à ignorer).
-        const jouee = parseGroupe((await ffe(pGroupe(m[1]), env)).text).rondes.find((r) => r.matchs.some((x) => /\d/.test(x.sd)));
+        const g = parseGroupe((await ffe(pGroupe(m[1]), env)).text);
+        if (/ · Nationale 4 · /.test(g.titre)) d.echiquiers = 6; // avant la première ronde
+        const jouee = g.rondes.find((r) => r.matchs.some((x) => /\d/.test(x.sd)));
         if (jouee) {
           const { data } = await detailRonde(m[1], jouee.n, env);
           d.echiquiers = Math.max(0, ...data.map((x) => x.parties.filter((p) => p.g || p.d).length)) || d.echiquiers;

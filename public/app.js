@@ -490,10 +490,11 @@ function vueEnvoi() {
 }
 
 // Valeurs finales du formulaire FFE pour une feuille (mêmes calculs que inc_equipe.js, règle « Adulte »)
-function champsFeuille(f) {
+// lignes : nombre de lignes du formulaire ; celles en trop (N4 : 8 lignes pour 6 échiquiers) partent vides
+function champsFeuille(f, lignes) {
   const [g, d] = score(f);
   const c = {};
-  f.ech.forEach((e, i) => {
+  Array.from({ length: lignes }, (_, i) => f.ech[i] ?? {}).forEach((e, i) => {
     const r = `${PF}RepeaterBoards$ctl${String(i).padStart(2, '0')}$`;
     c[r + 'TextNrFFEBl'] = e.g?.ffe ?? '';
     c[r + 'DropDownResult'] = e.res || 'None';
@@ -541,9 +542,11 @@ async function envoyer(f, reel) {
       const v = option(cible, nom);
       if (form.champs[PF + cible] !== v) await etape('Équipe : ' + nom, choisir(cible, v));
     }
-    if (form.echiquiers !== f.ech.length) throw new Error(`Le formulaire FFE attend ${form.echiquiers} échiquiers, la feuille en a ${f.ech.length}.`);
+    // Formulaire plus long que la feuille : admis seulement si la feuille a le nombre d'échiquiers du groupe
+    const attendus = enCache(pImprime(eq.groupe))?.echiquiers;
+    if (form.echiquiers !== f.ech.length && !(form.echiquiers > f.ech.length && f.ech.length === attendus)) throw new Error(`Le formulaire FFE attend ${form.echiquiers} échiquiers, la feuille en a ${f.ech.length}.`);
     if (form.regle && form.regle !== 'Adulte') throw new Error(`Barème « ${form.regle} » non géré par l'appli : saisir cette feuille sur le site FFE.`);
-    const valeurs = champsFeuille(f);
+    const valeurs = champsFeuille(f, form.echiquiers);
     // Commentaire toléré absent du formulaire, sauf s'il porte le nom de l'arbitre (aucun arbitre FFE choisi)
     const inconnus = Object.keys(valeurs).filter((k) => !(k in form.champs) && !(k.endsWith('TextCommentaire') && f.arbitre?.ffe));
     if (inconnus.length) throw new Error('Champs absents du formulaire FFE : ' + inconnus.map((k) => k.replace(PF, '')).join(', '));
