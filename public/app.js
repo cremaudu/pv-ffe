@@ -178,7 +178,9 @@ function vueConnexion() {
     <p class="note">${eqs.length ? 'Les identifiants sont vérifiés auprès de la FFE et ne sont pas conservés : ils sont redemandés à chaque ouverture.' : 'Chargement de la liste des équipes… (le site FFE est lent)'}</p></form>`;
   ['cEq', 'cLogin', 'cPwd'].forEach((id, i) => { if (avant[i]) document.getElementById(id).value = avant[i]; });
   document.getElementById('demo').onclick = () => {
-    session = { equipe: eqs.find((e) => e.id === +document.getElementById('cEq').value), demo: true, verif: 'demo' };
+    const equipe = eqs.find((e) => e.id === +document.getElementById('cEq').value);
+    session = { equipe, demo: true, verif: 'demo' };
+    ecrire('derniereEquipe', equipe.id);
     msgConnexion = ''; ronde = 0; recap = false;
     rendre(); chargerFeuille();
   };
