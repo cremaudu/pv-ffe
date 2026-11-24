@@ -8,6 +8,8 @@ window.CONFIG = {
   club: {
     // Début du nom des équipes dans les classements FFE (« Domloup » pour « Domloup 3 ») ; affiché dans l'en-tête
     nom: 'Domloup',
+    // Titre affiché à côté du logo (par défaut : nom)
+    titre: 'Interclubs',
     nomComplet: 'Échiquier Domloupéen',
     // Fiche club : https://echecs.asso.fr/ListeEquipes.aspx?ClubRef=REF
     ref: 1918,

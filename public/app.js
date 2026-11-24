@@ -9,7 +9,7 @@ const $modal = document.getElementById('modal');
   if (c.accent) r.setProperty('--jaune', c.accent);
   if (c.bouton) r.setProperty('--bleu', c.bouton);
   document.title = CFG.appli ?? 'PV FFE';
-  document.getElementById('club').textContent = CFG.club.nom;
+  document.getElementById('club').textContent = CFG.club.titre ?? CFG.club.nom;
   const logo = document.getElementById('logo');
   if (CFG.club.logo) { logo.src = CFG.club.logo; logo.alt = CFG.club.nomComplet ?? CFG.club.nom; logo.hidden = false; }
 }
