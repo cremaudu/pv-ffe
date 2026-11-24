@@ -58,7 +58,7 @@ Chaque lundi, le relais relit lui-même toutes les pages utiles sur le site FFE,
 Ordre de traitement :
 
 1. La fiche du club de Domloup et les 6 groupes suivis.
-2. Les fiches des clubs adverses, lues dans les classements.
+2. Les fiches des clubs adverses, lues dans les classements, puis la feuille de match vierge et le calendrier (dates, lieux) de chaque groupe.
 3. Les listes de joueurs de toutes les équipes de ces groupes (Montauban 2, par exemple, dans le groupe de Domloup 5).
 4. Le détail des parties des rondes jouées. Les rondes terminées déjà copiées ne sont pas relues, sauf la dernière ronde jouée de chaque groupe, relue chaque lundi pour prendre les corrections tardives.
 
@@ -73,6 +73,7 @@ Les équipes d'un club adverse engagées dans un groupe non suivi ne sont pas ch
 | Groupe : calendrier, scores, classement | 10 minutes | Oui, si la copie du relais a plus de 10 minutes, ou par Actualiser | Oui, les 6 groupes |
 | Fiche club : liste des équipes | 6 heures | Non, sauf si le relais n'a aucune copie | Oui, Domloup et tous les clubs adverses |
 | Liste des joueurs d'une équipe | 6 heures | Non, sauf si le relais n'a aucune copie | Oui, toutes les équipes des 6 groupes |
+| Feuille vierge et calendrier d'un groupe (pour imprimer) | 24 heures | Oui, si la copie du relais a plus de 24 heures | Oui, les 6 groupes |
 | Détail d'une ronde terminée | 1 semaine | Non, sauf si le relais n'a aucune copie | Seulement la dernière ronde jouée de chaque groupe |
 | Détail d'une ronde incomplète | 10 minutes | Oui, si la copie du relais a plus de 10 minutes | Oui |
 

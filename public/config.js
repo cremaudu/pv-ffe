@@ -21,6 +21,6 @@ window.CONFIG = {
   // Groupes suivis (https://echecs.asso.fr/Equipes.aspx?Groupe=ID). Les équipes du club,
   // leurs identifiants et ceux des adversaires sont retrouvés automatiquement.
   groupes: [31, 1710, 3291, 3290, 1708, 2970],
-  // Nombre d'échiquiers proposé par défaut sur la feuille de match (modifiable dans la feuille)
+  // Nombre d'échiquiers tant que celui du groupe n'a pas été lu sur le site FFE
   echiquiers: 5,
 };

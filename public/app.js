@@ -70,6 +70,7 @@ const age = (path) => {
 const MIN = 60000, H = 3600000;
 const pGroupe = (id) => 'groupe/' + id;
 const pClub = (ref) => `club/${ref}/equipes`;
+const pImprime = (id) => `groupe/${id}/papier`; // feuille papier du groupe : dates, lieux, nombre d'échiquiers
 const pJoueurs = (id) => `equipe/${id}/joueurs`;
 const estClub = (nom) => nom.startsWith(CFG.club.nom);
 const joue = (m, nom) => m.dom === nom || m.ext === nom;
@@ -174,16 +175,18 @@ function vueConnexion() {
     <label>Mot de passe FFE</label><input id="cPwd" type="password" autocomplete="current-password" required>
     ${msgConnexion ? `<p class="err">${esc(msgConnexion)}</p>` : ''}
     <p class="ligne"><button class="btn plein" ${eqs.length ? '' : 'disabled'}>Entrer</button>
-      <button type="button" class="btn" id="demo" ${eqs.length ? '' : 'disabled'}>Mode démo (sans identifiants)</button></p>
+      <button type="button" class="btn" id="demo" ${eqs.length ? '' : 'disabled'}>Mode démo (sans identifiants)</button>
+      <button type="button" class="btn" id="selection" ${eqs.length ? '' : 'disabled'}>Sélectionner les joueurs</button></p>
     <p class="note">${eqs.length ? 'Les identifiants sont vérifiés auprès de la FFE et ne sont pas conservés : ils sont redemandés à chaque ouverture.' : 'Chargement de la liste des équipes… (le site FFE est lent)'}</p></form>`;
   ['cEq', 'cLogin', 'cPwd'].forEach((id, i) => { if (avant[i]) document.getElementById(id).value = avant[i]; });
-  document.getElementById('demo').onclick = () => {
+  const sansIdentifiants = (mode) => {
     const equipe = eqs.find((e) => e.id === +document.getElementById('cEq').value);
-    session = { equipe, demo: true, verif: 'demo' };
+    session = { equipe, [mode]: true, verif: mode };
     ecrire('derniereEquipe', equipe.id);
     msgConnexion = ''; ronde = 0; recap = false;
     rendre(); chargerFeuille();
   };
+  for (const mode of ['demo', 'selection']) document.getElementById(mode).onclick = () => sansIdentifiants(mode);
   document.getElementById('cnx').onsubmit = (ev) => {
     ev.preventDefault();
     const equipe = eqs.find((e) => e.id === +document.getElementById('cEq').value);
@@ -216,7 +219,7 @@ let recap = false;
 
 const monMatch = (r) => r.matchs.find((m) => joue(m, session.equipe.nom));
 const dejaSaisie = (r) => { const m = monMatch(r); return !m || /\d/.test(m.sd); };
-const cleFeuille = () => `feuille${session.demo ? '-demo' : ''}:${session.equipe.id}:${ronde}`;
+const cleFeuille = () => `${session.selection ? 'selection' : session.demo ? 'feuille-demo' : 'feuille'}:${session.equipe.id}:${ronde}`;
 // Un seul objet en mémoire par feuille : les mises à jour asynchrones (codes FFE) ne s'écrasent pas.
 let courante = { cle: null, f: null };
 function feuille() {
@@ -232,6 +235,16 @@ function feuilleStockee() {
     ech: Array.from({ length: CFG.echiquiers }, () => ({ g: null, d: null, res: '' })),
     capG: null, capD: null, arbitre: null, commentaire: '',
   };
+}
+// Nombre d'échiquiers du groupe, appliqué une fois par valeur lue (il reste modifiable ensuite) ;
+// un échiquier déjà rempli n'est jamais retiré.
+function ajusterEchiquiers(f) {
+  const n = enCache(pImprime(session.equipe.groupe))?.echiquiers;
+  if (!n || f.ajuste === n || f.envoyee || envoi?.encours) return;
+  f.ajuste = n;
+  while (f.ech.length < n) f.ech.push({ g: null, d: null, res: '' });
+  while (f.ech.length > n && !f.ech.at(-1).g && !f.ech.at(-1).d && !f.ech.at(-1).res) f.ech.pop();
+  sauver(f);
 }
 const sauver = (f) => ecrire(cleFeuille(), f);
 const clubRef = (equipe) => enCache(pGroupe(session.equipe.groupe))?.classement.find((e) => e.equipe === equipe)?.clubRef ?? '';
@@ -293,17 +306,82 @@ function etatJoueurs(equipe) {
     : `<p class="note">Chargement des joueurs de ${esc(equipe)}… (le site FFE est lent ; la recherche « Autre joueur » fonctionne déjà)</p>`;
 }
 
+// actions = recherches FFE à essayer dans l'ordre pour retrouver le code (j1 joueur, jr capitaine, ar arbitre)
+function choisirPersonne(f, s, equipe, actions, poser) {
+  if (s.value === '__autre') return chercher(actions[0], clubRef(equipe), (ligne) => { poser(depuisLigne(ligne)); sauver(f); rendre(); }, rendre);
+  if (!s.value) { poser(null); sauver(f); return rendre(); }
+  const j = { nom: s.value };
+  const club = clubRef(s.selectedOptions[0].dataset.eq ?? equipe);
+  poser(j); sauver(f); rendre();
+  // La recherche FFE ne porte que sur le nom de famille (les mots en majuscules).
+  const famille = j.nom.split(' ').filter((m, i) => i === 0 || m === m.toUpperCase()).join(' ');
+  (async () => {
+    for (const a of actions) {
+      const l = await api(`recherche?action=${a}&club=${a === 'ar' ? '' : club}&q=${encodeURIComponent(famille)}`);
+      const ligne = l.find((x) => x.includes(j.nom));
+      if (ligne) { j.ffe = ligne; sauver(f); return rendre(); }
+    }
+    j.inconnu = true; sauver(f); rendre();
+  })().catch(() => {});
+}
+
+/* ---------- Sélection des joueurs avant le match : feuille papier à imprimer (sans identifiants) ---------- */
+const elo = (j) => j?.ffe?.match(/\s(\d{3,4})(?:\s*[A-Z])?$/)?.[1] ?? joueursDe(session.equipe.nom).find((p) => p.nom === j?.nom)?.elo.match(/\d+/)?.[0] ?? '';
+
+function vueSelection(h) {
+  const eq = session.equipe, f = feuille();
+  const path = pImprime(eq.groupe), imp = enCache(path);
+  const c = f.gauche === eq.nom ? 'g' : 'd';
+  ajusterEchiquiers(f);
+  const m = imp?.rondes.find((r) => r.n === ronde)?.matchs.find((m) => m.dom === f.gauche && m.ext === f.droite);
+  const choisis = f.ech.map((e) => e[c]).filter(Boolean);
+  const doubles = [...new Set(choisis.map((j) => j.nom).filter((n, i, t) => t.indexOf(n) !== i))];
+  const sansCode = choisis.filter((j) => !j.ffe);
+  const quand = m ? [m.date, m.lieu].filter(Boolean).join(' · ') : '';
+  h += `<div class="carte"><h2>${esc(f.gauche)} — ${esc(f.droite)}</h2>
+    <p class="note">${quand ? esc(quand) : etat[path] === 'charge' ? 'Chargement de la date et du lieu… (le site FFE est lent)' : 'Date et lieu non connus : à compléter à la main.'}</p>
+    <p class="note">${esc(eq.nom)} a les <b>${c === 'g' ? 'Blancs' : 'Noirs'}</b> au 1er échiquier.</p>
+    <div class="ligne"><span class="note">Échiquiers :</span><button class="btn" id="moins">−</button><b>${f.ech.length}</b><button class="btn" id="plus">+</button></div>
+    ${etatJoueurs(eq.nom)}
+    ${f.ech.map((e, i) => `<div class="ech"><div class="num">Échiquier ${i + 1}</div>
+      <div class="joueur"><span class="coul ${(i % 2 === 0) === (c === 'g') ? 'b' : 'n'}"></span>${selPersonne([eq.nom], e[c], `data-j="${i}"`)}<span class="code">${esc(code(e[c]))}<br>${esc(elo(e[c]))}</span></div></div>`).join('')}
+    ${doubles.length ? `<p class="err">Joueur en double : ${esc(doubles.join(', '))}</p>` : ''}
+    ${sansCode.length ? `<p class="err">Code FFE ${sansCode.every((j) => j.inconnu) ? 'introuvable' : 'pas encore trouvé'} : ${esc(sansCode.map((j) => j.nom).join(', '))}</p>` : ''}
+    <div class="ligne" style="margin-top:10px"><button class="btn plein" id="imprimer" ${imp || etat[path]?.startsWith('erreur') ? '' : 'disabled'}>Imprimer</button><button class="btn" id="vider">Effacer la sélection</button></div>
+    <p class="note">Enregistré automatiquement sur ce téléphone.</p></div>`;
+  $vue.innerHTML = h;
+  document.getElementById('plus').onclick = () => { if (f.ech.length < 10) f.ech.push({ g: null, d: null, res: '' }); sauver(f); rendre(); };
+  document.getElementById('moins').onclick = () => { if (f.ech.length > 1) f.ech.pop(); sauver(f); rendre(); };
+  $vue.querySelectorAll('[data-retry]').forEach((b) => (b.onclick = () => chargerFeuille()));
+  $vue.querySelectorAll('[data-j]').forEach((s) => (s.onchange = () => choisirPersonne(f, s, eq.nom, ['j1'], (j) => (f.ech[s.dataset.j][c] = j))));
+  document.getElementById('vider').onclick = (e) => {
+    if (e.target.dataset.sur) { oublier(cleFeuille()); rendre(); }
+    else { e.target.dataset.sur = 1; e.target.textContent = 'Confirmer l’effacement'; }
+  };
+  document.getElementById('imprimer').onclick = () => {
+    const joueurs = f.ech.map((e) => ({ nom: e[c]?.nom, code: code(e[c]), elo: elo(e[c]) }));
+    ouvrirPdf(pdfFeuille({
+      date: m?.date, lieu: m?.lieu, competition: imp?.competition || eq.competition, ronde,
+      gauche: f.gauche, droite: f.droite, echiquiers: f.ech.length,
+      pied: imp?.pied ?? ['Fédération Française des Echecs Saison ' + CFG.saison.replace('-', ' - ')],
+      joueursG: c === 'g' ? joueurs : [], joueursD: c === 'd' ? joueurs : [],
+    }), `feuille-${sansAccent(eq.nom).replace(/[^a-z0-9]+/g, '-')}-ronde-${ronde}.pdf`);
+  };
+}
+
 function vueFeuille() {
   if (!session) return vueConnexion();
   const eq = session.equipe, g = enCache(pGroupe(eq.groupe));
-  const verif = { encours: 'vérification des identifiants…', ok: 'identifiants vérifiés ✓', inconnu: 'identifiants non vérifiés (FFE injoignable)', demo: 'mode démo : aucun envoi possible' }[session.verif];
+  const verif = { encours: 'vérification des identifiants…', ok: 'identifiants vérifiés ✓', inconnu: 'identifiants non vérifiés (FFE injoignable)', demo: 'mode démo : aucun envoi possible', selection: 'sélection des joueurs' }[session.verif];
   let h = `<p class="note ligne"><b>${esc(eq.nom)}</b><span>${verif}</span><button class="btn" id="quitter">Quitter</button></p>`;
   if (!g) { $vue.innerHTML = h + '<p class="note">Chargement du calendrier… (le site FFE est lent)</p>'; brancherQuitter(); return; }
   const libres = g.rondes.filter((r) => !dejaSaisie(r));
   if (!libres.some((r) => r.n === ronde)) ronde = libres[0]?.n ?? 0;
   h += `<div class="chips">${g.rondes.map((r) => `<button data-r="${r.n}" ${dejaSaisie(r) ? 'disabled' : ''} class="${r.n === ronde ? 'actif' : ''}">Ronde ${r.n}</button>`).join('')}</div>`;
   if (!ronde) { $vue.innerHTML = h + '<p class="note">Toutes les rondes sont déjà saisies sur le site de la FFE.</p>'; brancherQuitter(); return; }
+  if (session.selection) { vueSelection(h); brancherRondes(); brancherQuitter(); return; }
   const f = feuille();
+  ajusterEchiquiers(f);
   const [sg, sd] = score(f);
 
   if (recap) {
@@ -367,24 +445,7 @@ function vueFeuille() {
       sauver(f); rendre();
     }));
     $vue.querySelectorAll('[data-autre]').forEach((s) => (s.onchange = () => { f.ech[s.dataset.autre].res = s.value; sauver(f); rendre(); }));
-    // actions = recherches FFE à essayer dans l'ordre pour retrouver le code (j1 joueur, jr capitaine, ar arbitre)
-    const choisir = (s, equipe, actions, poser) => {
-      if (s.value === '__autre') return chercher(actions[0], clubRef(equipe), (ligne) => { poser(depuisLigne(ligne)); sauver(f); rendre(); }, rendre);
-      if (!s.value) { poser(null); sauver(f); return rendre(); }
-      const j = { nom: s.value };
-      const club = clubRef(s.selectedOptions[0].dataset.eq ?? equipe);
-      poser(j); sauver(f); rendre();
-      // La recherche FFE ne porte que sur le nom de famille (les mots en majuscules).
-      const famille = j.nom.split(' ').filter((m, i) => i === 0 || m === m.toUpperCase()).join(' ');
-      (async () => {
-        for (const a of actions) {
-          const l = await api(`recherche?action=${a}&club=${a === 'ar' ? '' : club}&q=${encodeURIComponent(famille)}`);
-          const ligne = l.find((x) => x.includes(j.nom));
-          if (ligne) { j.ffe = ligne; sauver(f); return rendre(); }
-        }
-        j.inconnu = true; sauver(f); rendre();
-      })().catch(() => {});
-    };
+    const choisir = (...a) => choisirPersonne(f, ...a);
     $vue.querySelectorAll('[data-j]').forEach((s) => (s.onchange = () => {
       const [i, c] = s.dataset.j.split(':');
       choisir(s, c === 'g' ? f.gauche : f.droite, ['j1'], (j) => (f.ech[i][c] = j));
@@ -402,8 +463,11 @@ function vueFeuille() {
       else { e.target.dataset.sur = 1; e.target.textContent = 'Confirmer l’effacement'; }
     };
   }
-  $vue.querySelectorAll('[data-r]').forEach((b) => (b.onclick = () => { ronde = +b.dataset.r; recap = false; rendre(); chargerFeuille(); }));
+  brancherRondes();
   brancherQuitter();
+}
+function brancherRondes() {
+  $vue.querySelectorAll('[data-r]').forEach((b) => (b.onclick = () => { ronde = +b.dataset.r; recap = false; rendre(); chargerFeuille(); }));
 }
 function brancherQuitter() {
   document.getElementById('quitter').onclick = () => { session = null; msgConnexion = ''; rendre(); };
@@ -538,14 +602,17 @@ async function chargerFeuille() {
   const s = session;
   if (!s) return;
   await charger(pGroupe(s.equipe.groupe), 10 * MIN);
+  // Nombre d'échiquiers : copie du relais d'abord ; dates et lieux rafraîchis en dernier, pour la sélection seulement
+  await charger(pImprime(s.equipe.groupe), 24 * H, false, true);
   if (session !== s || !ronde) return;
   const f = feuille();
-  for (const eq of [f.gauche, f.droite]) {
+  for (const eq of s.selection ? [s.equipe.nom] : [f.gauche, f.droite]) {
     const ref = clubRef(eq);
     if (ref) await charger(pClub(ref), 6 * H, false, true);
     const id = idEquipe(eq, s.equipe.groupe);
     if (id) await charger(pJoueurs(id), 6 * H, false, true);
   }
+  if (s.selection) await charger(pImprime(s.equipe.groupe), 24 * H);
 }
 
 /* ---------- Navigation ---------- */

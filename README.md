@@ -10,6 +10,7 @@ Le projet a été écrit pour l'Échiquier Domloupéen. Il s'adapte à un autre 
 
 - **Résultats** : classement et calendrier de chaque équipe du club, vue de toutes les équipes pour une ronde, détail des parties d'une ronde jouée.
 - **Feuille de match** : saisie hors ligne des joueurs, résultats, capitaines et arbitre, avec les joueurs de chaque équipe proposés d'office et une recherche par nom ou code FFE.
+- **Sélection des joueurs** : choix des joueurs de l'équipe avant le match et impression (PDF) de la feuille de match papier, sans identifiants.
 - **Envoi à la FFE** : l'appli remplit le formulaire fédéral étape par étape. Un bouton « Tester sans enregistrer » va jusqu'au bout sans rien enregistrer ; l'envoi réel demande une confirmation.
 - **Mode démo** : toute la saisie sans identifiants, envoi désactivé.
 
@@ -63,7 +64,7 @@ Tout se règle dans `public/config.js` :
 | `club.logo` | image de l'en-tête, à déposer dans `public/` |
 | `couleurs` | bandeau du haut, couleur d'accent, boutons |
 | `groupes` | numéros des groupes où jouent les équipes du club |
-| `echiquiers` | nombre d'échiquiers proposé par défaut |
+| `echiquiers` | nombre d'échiquiers tant que celui du groupe n'a pas été lu sur le site FFE |
 
 Deux éléments restent hors de ce fichier : l'icône de l'appli (`public/icon.svg`, à remplacer) et le nom du déploiement (`name` dans `wrangler.jsonc`), qui donne le début de l'adresse.
 

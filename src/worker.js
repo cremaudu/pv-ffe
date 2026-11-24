@@ -71,6 +71,28 @@ export function parseClub(html) {
   return out;
 }
 
+// Feuille papier vierge d'un groupe (EquipesPV) + calendrier (dates et lieux) : de quoi imprimer la feuille d'un match
+export function parseImprime(pv, cal) {
+  const span = (id) => pv.match(new RegExp(`id="${id}"[^>]*>([\\s\\S]*?)</span>`))?.[1] ?? '';
+  const rondes = [];
+  const parts = cal.split(/Ronde&nbsp;(\d+)/);
+  for (let i = 1; i < parts.length; i += 2) {
+    const matchs = [];
+    for (const m of parts[i + 1].matchAll(/<tr id="[^"]*RowMatch"[^>]*>([\s\S]*?)<\/tr>/g)) {
+      const c = cells(m[1]).map(decode);
+      const d = c[4]?.match(/(\d\d\/\d\d)\/(\d\d)(?!\d)/);
+      if (c.length >= 6) matchs.push({ dom: c[0], ext: c[3], date: d ? `${d[1]}/20${d[2]}` : '', lieu: c[5] });
+    }
+    if (matchs.length) rondes.push({ n: +parts[i], matchs });
+  }
+  return {
+    competition: decode(span('LabelCompetition')),
+    echiquiers: [...pv.matchAll(/<p class=Clubs>\d+ [BN]<\/p>/g)].length / 2,
+    pied: span('LabelSaison').split(/<br[^>]*>/).map(decode).filter(Boolean),
+    rondes,
+  };
+}
+
 /* ---------- Partie authentifiée : connexion et formulaire SaisiePV.aspx ---------- */
 const P = 'ctl00$ContentPlaceHolderMain$';
 const CIBLES = ['SelectCompetition', 'SelectDivision', 'SelectGroupe', 'DropDownEquipeBlanc', 'DropDownEquipeNoir', 'LinkCmdSave'];
@@ -154,6 +176,8 @@ async function saisie(cookie, body) {
    et par la tâche planifiée du lundi matin (scheduled). */
 const pGroupe = (id) => 'Equipes.aspx?Groupe=' + id;
 const pClub = (ref) => 'ListeEquipes.aspx?ClubRef=' + ref;
+const pPV = (id) => 'EquipesPV.aspx?Lire=1&Ref=' + id;
+const pCalendrier = (id) => `EquipesCalendrier.aspx?Ref=${id}&Saison=3000`;
 const pJoueurs = (id) => 'ListeJoueurs.aspx?Action=EQUIPE&Equipe=' + id;
 
 async function ffe(path, env, fresh) {
@@ -166,7 +190,7 @@ async function ffe(path, env, fresh) {
   const text = await r.text();
   const t = Date.now();
   // Une page tronquée ou d'erreur ne remplace pas une bonne copie
-  if (text.includes('id="aspnetForm"')) await env.CACHE.put('p:' + path, text, { metadata: { t } });
+  if (/id="(aspnetForm|FormNavigation)"/.test(text)) await env.CACHE.put('p:' + path, text, { metadata: { t } });
   return { text, t };
 }
 
@@ -257,6 +281,8 @@ export async function recharger(envBrut, maintenant = Date.now()) {
           // Du groupe découlent : les clubs adverses, puis le détail des rondes jouées
           const g = parseGroupe(text);
           g.classement.forEach((c) => ajouter(pClub(c.clubRef)));
+          ajouter(pPV(m[1]));
+          ajouter(pCalendrier(m[1]));
           const jouees = g.rondes.filter((r) => r.matchs.some((x) => /\d/.test(x.sd)));
           // La dernière ronde jouée est toujours rechargée (corrections tardives du directeur de groupe)
           jouees.forEach((r, i) => ajouter(`ronde:${m[1]}:${r.n}${i === jouees.length - 1 ? ":force" : ""}`));
@@ -299,6 +325,18 @@ export default {
       if ((m = u.pathname.match(/^\/api\/groupe\/(\d+)\/ronde\/(\d+)$/))) {
         const d = await detailRonde(m[1], m[2], env, fresh);
         return json(d.data, 200, d.t);
+      }
+      if ((m = u.pathname.match(/^\/api\/groupe\/(\d+)\/papier$/))) {
+        const pv = await ffe(pPV(m[1]), env, fresh), cal = await ffe(pCalendrier(m[1]), env, fresh);
+        const d = parseImprime(pv.text, cal.text);
+        // La feuille vierge « Interclubs » a toujours 8 lignes, même en N4 (6 échiquiers) : dès qu'une ronde
+        // est jouée, on compte ses parties (la FFE complète avec des lignes vides, à ignorer).
+        const jouee = parseGroupe((await ffe(pGroupe(m[1]), env)).text).rondes.find((r) => r.matchs.some((x) => /\d/.test(x.sd)));
+        if (jouee) {
+          const { data } = await detailRonde(m[1], jouee.n, env);
+          d.echiquiers = Math.max(0, ...data.map((x) => x.parties.filter((p) => p.g || p.d).length)) || d.echiquiers;
+        }
+        return json(d, 200, Math.min(pv.t, cal.t));
       }
       if ((m = u.pathname.match(/^\/api\/groupe\/(\d+)$/))) return page(pGroupe(m[1]), parseGroupe, env, fresh);
       if ((m = u.pathname.match(/^\/api\/equipe\/(\d+)\/joueurs$/))) return page(pJoueurs(m[1]), parseJoueurs, env, fresh);
