@@ -29,7 +29,7 @@ Application web mobile (PWA) pour les capitaines d'équipes d'échecs d'un club 
 - La session capitaine (équipe + identifiants FFE) vit en mémoire uniquement, jamais dans `localStorage`.
 - Cache : `localStorage` côté téléphone (`c:<chemin>` pour les données, `feuille:<idEquipe>:<ronde>` pour les feuilles, `selection:…` pour les sélections de joueurs) ; affichage immédiat depuis le cache puis rafraîchissement. Côté relais, chaque page FFE est copiée dans KV (`env.CACHE`, clés `p:<chemin FFE>` et `r:<groupe>:<ronde>`) et servie telle quelle avec son âge (`X-Age`) ; l'appli redemande `?fresh` quand la copie d'un groupe dépasse 10 min. Fiches clubs et listes de joueurs ne sont jamais relues à la demande de l'appli : seulement le lundi (ou si le relais n'en a aucune copie).
 - Tâche planifiée (`scheduled` → `recharger()`), le lundi de 02h00 à 05h55 UTC toutes les 5 min : file d'attente dans KV (`cron:etat`), 4 pages par passage — fiche club, groupes, puis clubs adverses, feuilles vierges et calendriers, listes de joueurs et détails des rondes jouées. `GET /api/cron` en donne l'état. En local, `GET /api/dev-cron` exécute un passage (faux KV en mémoire dans `dev.mjs`).
-- Score du match : repris de `inc_equipe.js` de la FFE — seules les victoires (forfaits compris) comptent, une nulle vaut 0 (sauf règles « Criterium » et « Jeune », non gérées).
+- Score du match : repris de `inc_equipe.js` de la FFE — seules les victoires (forfaits compris) comptent, une nulle vaut 0 (sauf règles « Criterium », « Jeune » et « Jeune4 », non gérées ; « Adulte8 », celle des Nationales, se calcule comme « Adulte »).
 
 ## Changement de saison
 

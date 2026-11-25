@@ -545,7 +545,8 @@ async function envoyer(f, reel) {
     // Formulaire plus long que la feuille : admis seulement si la feuille a le nombre d'échiquiers du groupe
     const attendus = enCache(pImprime(eq.groupe))?.echiquiers;
     if (form.echiquiers !== f.ech.length && !(form.echiquiers > f.ech.length && f.ech.length === attendus)) throw new Error(`Le formulaire FFE attend ${form.echiquiers} échiquiers, la feuille en a ${f.ech.length}.`);
-    if (form.regle && form.regle !== 'Adulte') throw new Error(`Barème « ${form.regle} » non géré par l'appli : saisir cette feuille sur le site FFE.`);
+    // « Adulte8 » (Nationales) : même calcul qu'« Adulte » dans inc_equipe.js
+    if (form.regle && !/^Adulte[0-9]*$/.test(form.regle)) throw new Error(`Barème « ${form.regle} » non géré par l'appli : saisir cette feuille sur le site FFE.`);
     const valeurs = champsFeuille(f, form.echiquiers);
     // Commentaire toléré absent du formulaire, sauf s'il porte le nom de l'arbitre (aucun arbitre FFE choisi)
     const inconnus = Object.keys(valeurs).filter((k) => !(k in form.champs) && !(k.endsWith('TextCommentaire') && f.arbitre?.ffe));
