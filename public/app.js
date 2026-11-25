@@ -75,12 +75,17 @@ const pJoueurs = (id) => `equipe/${id}/joueurs`;
 const estClub = (nom) => nom.startsWith(CFG.club.nom);
 const joue = (m, nom) => m.dom === nom || m.ext === nom;
 
-// Équipes du club dans les groupes suivis : [{ id, nom, groupe, division, groupeNom }]
-function equipesClub() {
+// Adultes et jeunes ne sont jamais mélangés : des équipes portent le même nom dans les deux catégories
+const CATS = [['adultes', 'Adultes', CFG.groupes], ['jeunes', 'Jeunes', CFG.groupesJeunes ?? []]].filter(([, , g]) => g.length);
+let cat = CATS.some(([c]) => c === lire('cat')) ? lire('cat') : CATS[0][0];
+const groupesDe = (c) => CATS.find(([k]) => k === c)[2];
+
+// Équipes d'une catégorie du club dans les groupes suivis : [{ id, nom, groupe, division, groupeNom }]
+function equipesClub(c) {
   const liste = enCache(pClub(CFG.club.ref));
-  if (liste) return liste.filter((e) => CFG.groupes.includes(e.groupe)).sort((a, b) => a.nom.localeCompare(b.nom, 'fr', { numeric: true }));
+  if (liste) return liste.filter((e) => groupesDe(c).includes(e.groupe)).sort((a, b) => a.nom.localeCompare(b.nom, 'fr', { numeric: true }));
   // Secours tant que la fiche club n'est pas chargée : noms lus dans les classements
-  return CFG.groupes.flatMap((g) => (enCache(pGroupe(g))?.classement ?? []).filter((e) => estClub(e.equipe)).map((e) => ({ id: 0, nom: e.equipe, groupe: g })));
+  return groupesDe(c).flatMap((g) => (enCache(pGroupe(g))?.classement ?? []).filter((e) => estClub(e.equipe)).map((e) => ({ id: 0, nom: e.equipe, groupe: g })));
 }
 // Identifiant FFE d'une équipe d'un groupe (via la fiche de son club)
 function idEquipe(nom, groupe) {
@@ -89,23 +94,26 @@ function idEquipe(nom, groupe) {
 }
 
 /* ---------- Vue Résultats ---------- */
-let sel = lire('sel', { ronde: 0, equipe: '', groupe: 0 }); // équipe affichée, ou ronde compilée
+const cleSel = () => (cat === 'adultes' ? 'sel' : 'sel-' + cat);
+const lireSel = () => lire(cleSel(), { ronde: 0, equipe: '', groupe: 0 });
+let sel = lireSel(); // équipe affichée, ou ronde compilée (un choix par catégorie)
 
 function ligneMatch(m, fort) {
   return `<tr class="${fort ? 'club' : ''}"><td class="dom">${esc(m.dom)}</td><td class="sc">${/\d/.test(m.sd) ? esc(m.sd) + ' - ' + esc(m.se) : '-'}</td><td class="ext">${esc(m.ext)}</td></tr>`;
 }
 
 function vueResultats() {
-  const eqs = equipesClub();
+  const eqs = equipesClub(cat);
   if (!sel.ronde && !eqs.some((e) => e.nom === sel.equipe && e.groupe === sel.groupe) && eqs[0]) sel = { ronde: 0, equipe: eqs[0].nom, groupe: eqs[0].groupe };
-  const nbRondes = Math.max(0, ...CFG.groupes.map((g) => enCache(pGroupe(g))?.rondes.length ?? 0));
+  const nbRondes = Math.max(0, ...groupesDe(cat).map((g) => enCache(pGroupe(g))?.rondes.length ?? 0));
   const enCours = Object.values(etat).includes('charge');
-  let h = `<div class="chips">${eqs.map((e) => `<button data-e="${esc(e.nom)}" data-g="${e.groupe}" class="${!sel.ronde && e.nom === sel.equipe && e.groupe === sel.groupe ? 'actif' : ''}">${esc(e.nom)}</button>`).join('')}</div>`;
+  let h = CATS.length > 1 ? `<div class="cats">${CATS.map(([c, t]) => `<button data-cat="${c}" class="${c === cat ? 'actif' : ''}">${t}</button>`).join('')}</div>` : '';
+  h += `<div class="chips">${eqs.map((e) => `<button data-e="${esc(e.nom)}" data-g="${e.groupe}" class="${!sel.ronde && e.nom === sel.equipe && e.groupe === sel.groupe ? 'actif' : ''}">${esc(e.nom)}</button>`).join('')}</div>`;
   h += `<div class="chips">${Array.from({ length: nbRondes }, (_, i) => `<button data-r="${i + 1}" class="${sel.ronde === i + 1 ? 'actif' : ''}">Ronde ${i + 1}</button>`).join('')}</div>`;
   h += `<p class="note ligne"><span>${enCours ? 'Actualisation… (le site FFE est lent)' : ''}</span><button class="btn" id="maj">Actualiser</button></p>`;
 
   if (sel.ronde) {
-    h += `<div class="carte"><h2>Ronde ${sel.ronde} — équipes de ${esc(CFG.club.nom)}</h2><table class="cal">`;
+    h += `<div class="carte"><h2>Ronde ${sel.ronde} — équipes ${CATS.length > 1 ? esc(cat) + ' ' : ''}de ${esc(CFG.club.nom)}</h2><table class="cal">`;
     for (const e of eqs) {
       const m = enCache(pGroupe(e.groupe))?.rondes.find((r) => r.n === sel.ronde)?.matchs.find((m) => joue(m, e.nom));
       h += `<tr><td colspan="3" class="div">${esc(e.nom)}${e.division ? ' · ' + esc(e.division) : ''}</td></tr>`;
@@ -122,7 +130,8 @@ function vueResultats() {
     } else h += `<p class="note ${etat[path]?.startsWith('erreur') ? 'err' : ''}">${esc(etat[path] && etat[path] !== 'charge' ? etat[path] : 'Chargement…')}</p>`;
   }
   $vue.innerHTML = h;
-  const choisir = (s) => { sel = s; ecrire('sel', sel); rendre(); };
+  const choisir = (s) => { sel = s; ecrire(cleSel(), sel); rendre(); };
+  $vue.querySelectorAll('[data-cat]').forEach((b) => (b.onclick = () => { if (b.dataset.cat === cat) return; cat = b.dataset.cat; ecrire('cat', cat); sel = lireSel(); rendre(); chargerTout(); }));
   $vue.querySelectorAll('[data-e]').forEach((b) => (b.onclick = () => choisir({ ronde: 0, equipe: b.dataset.e, groupe: +b.dataset.g })));
   $vue.querySelectorAll('[data-r]').forEach((b) => (b.onclick = () => choisir({ ...sel, ronde: +b.dataset.r })));
   document.getElementById('maj').onclick = () => chargerTout(true);
@@ -153,11 +162,21 @@ async function detailRonde(groupe, n, equipe) {
   } catch (e) { if (!c && !$modal.hidden) dessiner(`<p class="err">Erreur : ${esc(e.message)}</p>`); }
 }
 
-async function chargerTout(fresh) {
+// Charge la catégorie affichée. Un nouvel appel interrompt la série en cours et attend la page déjà demandée.
+let serie = 0, file = Promise.resolve();
+function chargerTout(fresh) {
+  const moi = ++serie;
+  file = file.then(() => chargerSerie(fresh, moi));
+}
+async function chargerSerie(fresh, moi) {
   // Un par un : le site FFE supporte mal les requêtes parallèles. Groupe affiché d'abord.
+  if (moi !== serie) return;
   await charger(pClub(CFG.club.ref), 6 * H, false, true);
-  const ordre = [...new Set([session?.equipe.groupe, sel.groupe, ...CFG.groupes].filter(Boolean))];
-  for (const g of ordre) await charger(pGroupe(g), 10 * MIN, fresh);
+  const ordre = [...new Set([session?.equipe.groupe, sel.groupe, ...groupesDe(cat)].filter(Boolean))];
+  for (const g of ordre) {
+    if (moi !== serie) return;
+    await charger(pGroupe(g), 10 * MIN, fresh);
+  }
 }
 
 /* ---------- Connexion capitaine ---------- */
@@ -166,11 +185,12 @@ let session = null; // { equipe, login, password, verif: 'encours' | 'ok' | 'inc
 let msgConnexion = '';
 
 function vueConnexion() {
-  const eqs = equipesClub().filter((e) => e.id);
+  const parCat = CATS.map(([c, t]) => [t, equipesClub(c).filter((e) => e.id)]).filter(([, l]) => l.length);
+  const eqs = parCat.flatMap(([, l]) => l);
   const dernier = lire('derniereEquipe');
   const avant = ['cEq', 'cLogin', 'cPwd'].map((id) => document.getElementById(id)?.value);
   $vue.innerHTML = `<form class="carte" id="cnx"><h2>Saisie d'une feuille de match</h2>
-    <label>Équipe</label><select id="cEq">${eqs.map((e) => `<option value="${e.id}" ${e.id === dernier ? 'selected' : ''}>${esc(e.nom)} — ${esc(e.division)}</option>`).join('')}</select>
+    <label>Équipe</label><select id="cEq">${parCat.map(([t, l]) => { const o = l.map((e) => `<option value="${e.id}" ${e.id === dernier ? 'selected' : ''}>${esc(e.nom)} — ${esc(e.division)}</option>`).join(''); return parCat.length > 1 ? `<optgroup label="${t}">${o}</optgroup>` : o; }).join('')}</select>
     <label>Code FFE (identifiant du site fédéral)</label><input id="cLogin" autocomplete="username" autocapitalize="characters" required>
     <label>Mot de passe FFE</label><input id="cPwd" type="password" autocomplete="current-password" required>
     ${msgConnexion ? `<p class="err">${esc(msgConnexion)}</p>` : ''}
@@ -272,13 +292,17 @@ function selPersonne(equipes, j, attr, autre = 'Autre joueur (recherche)…') {
     <option value="__autre">${autre}</option></select>`;
 }
 
+// Groupe dont le formulaire FFE n'a pas de champ commentaire : les jeunes d'office, sinon ce qu'a montré sa dernière ouverture
+const cleSansCom = (groupe) => 'sansCommentaire:' + groupe;
+const sansCommentaire = (groupe = session.equipe.groupe) => lire(cleSansCom(groupe), (CFG.groupesJeunes ?? []).includes(groupe));
+
 const lib = (j) => j?.ffe ?? j?.nom ?? '?';
 function texteRecap(f) {
   const [g, d] = score(f);
   const l = [`Ronde ${ronde} — ${f.gauche} ${g} - ${d} ${f.droite}`, ''];
   f.ech.forEach((e, i) => l.push(`${i + 1}. ${lib(e.g)}  [${LIB_RES[e.res] ?? '?'}]  ${lib(e.d)}`));
-  l.push('', `Capitaines : ${lib(f.capG)} / ${lib(f.capD)}`, `Arbitre : ${f.arbitre?.ffe ?? (f.arbitre?.nom ? f.arbitre.nom + ' (non arbitre FFE, voir commentaire)' : 'aucun arbitre FFE (voir commentaire)')}`);
-  if (f.commentaire) l.push('Commentaire : ' + f.commentaire);
+  l.push('', `Capitaines : ${lib(f.capG)} / ${lib(f.capD)}`, `Arbitre : ${f.arbitre?.ffe ?? (f.arbitre?.nom ? f.arbitre.nom + ' (non arbitre FFE, champ laissé vide)' : 'aucun arbitre FFE')}`);
+  if (f.commentaire) l.push(`Commentaire${sansCommentaire() ? ' (non transmis, pas de champ commentaire dans le formulaire FFE)' : ''} : ` + f.commentaire);
   return l.join('\n');
 }
 
@@ -294,7 +318,7 @@ function manques(f) {
   if (!f.capG?.ffe) m.push('capitaine ' + f.gauche);
   if (!f.capD?.ffe) m.push('capitaine ' + f.droite);
   // Arbitre facultatif (certaines divisions acceptent un arbitre sans titre FFE) : son nom va alors dans le commentaire
-  if (!f.arbitre?.ffe && !f.commentaire?.trim()) m.push('commentaire avec le nom de l’arbitre (aucun arbitre FFE choisi)');
+  if (!f.arbitre?.ffe && !f.commentaire?.trim() && !sansCommentaire()) m.push('commentaire avec le nom de l’arbitre (aucun arbitre FFE choisi)');
   return m;
 }
 
@@ -365,7 +389,7 @@ function vueSelection(h) {
       gauche: f.gauche, droite: f.droite, echiquiers: f.ech.length,
       pied: imp?.pied ?? ['Fédération Française des Echecs Saison ' + CFG.saison.replace('-', ' - ')],
       joueursG: c === 'g' ? joueurs : [], joueursD: c === 'd' ? joueurs : [],
-    }), `feuille-${sansAccent(eq.nom).replace(/[^a-z0-9]+/g, '-')}-ronde-${ronde}.pdf`);
+    }), `feuille-${sansAccent(eq.nom + ' ' + eq.division).replace(/[^a-z0-9]+/g, '-')}-ronde-${ronde}.pdf`);
   };
 }
 
@@ -373,7 +397,7 @@ function vueFeuille() {
   if (!session) return vueConnexion();
   const eq = session.equipe, g = enCache(pGroupe(eq.groupe));
   const verif = { encours: 'vérification des identifiants…', ok: 'identifiants vérifiés ✓', inconnu: 'identifiants non vérifiés (FFE injoignable)', demo: 'mode démo : aucun envoi possible', selection: 'sélection des joueurs' }[session.verif];
-  let h = `<p class="note ligne"><b>${esc(eq.nom)}</b><span>${verif}</span><button class="btn" id="quitter">Quitter</button></p>`;
+  let h = `<p class="note ligne"><b>${esc(eq.nom)} · ${esc(eq.division)}</b><span>${verif}</span><button class="btn" id="quitter">Quitter</button></p>`;
   if (!g) { $vue.innerHTML = h + '<p class="note">Chargement du calendrier… (le site FFE est lent)</p>'; brancherQuitter(); return; }
   const libres = g.rondes.filter((r) => !dejaSaisie(r));
   if (!libres.some((r) => r.n === ronde)) ronde = libres[0]?.n ?? 0;
@@ -422,8 +446,8 @@ function vueFeuille() {
         <label>Capitaine ${esc(f.gauche)}</label><div class="joueur">${selPersonne([f.gauche], f.capG, 'data-cap="capG"')}</div>
         <label>Capitaine ${esc(f.droite)}</label><div class="joueur">${selPersonne([f.droite], f.capD, 'data-cap="capD"')}</div>
         <label>Arbitre</label><div class="joueur">${selPersonne([f.gauche, f.droite], f.arbitre, 'id="arbitre"', 'Autre arbitre (recherche)…')}</div>
-        ${f.arbitre?.inconnu ? `<p class="err">${esc(f.arbitre.nom)} n'est pas arbitre à la FFE : le champ arbitre partira vide. Indique son nom dans le commentaire.</p>` : f.arbitre?.ffe ? `<p class="note">${esc(f.arbitre.ffe)}</p>` : '<p class="note">Sans arbitre FFE, indique dans le commentaire qui a arbitré.</p>'}
-        <label>Commentaire et réclamations${f.arbitre?.ffe ? '' : ' (obligatoire sans arbitre FFE)'}</label><textarea id="com" rows="2" placeholder="${f.arbitre?.ffe ? '' : 'Arbitre : NOM Prénom'}">${esc(f.commentaire)}</textarea>
+        ${f.arbitre?.inconnu ? `<p class="err">${esc(f.arbitre.nom)} n'est pas arbitre à la FFE : le champ arbitre partira vide.${sansCommentaire() ? '' : ' Indique son nom dans le commentaire.'}</p>` : f.arbitre?.ffe ? `<p class="note">${esc(f.arbitre.ffe)}</p>` : sansCommentaire() ? '' : '<p class="note">Sans arbitre FFE, indique dans le commentaire qui a arbitré.</p>'}
+        ${sansCommentaire() && !f.commentaire ? '' : `<label>Commentaire et réclamations${sansCommentaire() ? ' (non transmis : le formulaire FFE de ce groupe n’a pas de champ commentaire)' : f.arbitre?.ffe ? '' : ' (obligatoire sans arbitre FFE)'}</label><textarea id="com" rows="2" placeholder="${f.arbitre?.ffe ? '' : 'Arbitre : NOM Prénom'}">${esc(f.commentaire)}</textarea>`}
       </div>
       <div class="ligne" style="margin-top:10px"><button class="btn plein" id="recap">Récapitulatif</button><button class="btn" id="vider">Effacer la feuille</button></div>
       <p class="note">Enregistré automatiquement sur ce téléphone.</p></div>`;
@@ -456,7 +480,8 @@ function vueFeuille() {
     }));
     const arb = document.getElementById('arbitre');
     arb.onchange = () => choisir(arb, f.gauche, ['ar'], (j) => (f.arbitre = j));
-    document.getElementById('com').oninput = (e) => { f.commentaire = e.target.value; sauver(f); };
+    const com = document.getElementById('com'); // absent si le formulaire FFE n'a pas de commentaire
+    if (com) com.oninput = (e) => { f.commentaire = e.target.value; sauver(f); };
     document.getElementById('recap').onclick = () => { recap = true; rendre(); window.scrollTo(0, 0); };
     document.getElementById('vider').onclick = (e) => {
       if (e.target.dataset.sur) { oublier(cleFeuille()); rendre(); }
@@ -481,6 +506,8 @@ const sansAccent = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase
 
 function vueEnvoi() {
   if (!envoi) return '';
+  // Un test ou un envoi ne s'affiche que sur sa propre feuille
+  if (envoi.cle !== cleFeuille()) return envoi.encours ? '<p class="note">Un test ou un envoi est en cours pour une autre feuille.</p>' : '';
   const ic = { fait: '✓', encours: '…', erreur: '✗' };
   return `<div class="ech"><div class="num">${envoi.reel ? 'Envoi à la FFE' : 'Test sans enregistrement'}</div>
     ${envoi.etapes.map((e) => `<div class="etape ${e.etat}">${ic[e.etat]} ${esc(e.t)}</div>`).join('')}
@@ -511,9 +538,16 @@ function champsFeuille(f, lignes) {
   return c;
 }
 
+// Message de confirmation de la FFE. Les consignes du formulaire le citent : elles sont retirées avant de le chercher.
+function confirme(texte) {
+  const t = sansAccent(texte).replace(/une fois le formulaire rempli[\s\S]*?rien n.a ete enregistre/g, '');
+  return /modifications? ont ete enregistree/.test(t) && !/erreur|incorrect|invalide|inconnu/.test(t);
+}
+
 async function envoyer(f, reel) {
-  const s = session, eq = s.equipe;
-  const e = (envoi = { encours: true, reel, etapes: [] });
+  // L'équipe ou la ronde affichée peut changer pendant l'envoi : tout ce qui suit reste lié à la feuille de départ
+  const s = session, eq = s.equipe, cle = cleFeuille();
+  const e = (envoi = { cle, encours: true, reel, etapes: [] });
   let form;
   // Une étape = une requête FFE (~30 s). Les étapes de préparation sont retentées une fois ; l'enregistrement jamais.
   const etape = async (t, fn, essais = 2) => {
@@ -548,19 +582,26 @@ async function envoyer(f, reel) {
     // « Adulte8 » (Nationales) : même calcul qu'« Adulte » dans inc_equipe.js
     if (form.regle && !/^Adulte[0-9]*$/.test(form.regle)) throw new Error(`Barème « ${form.regle} » non géré par l'appli : saisir cette feuille sur le site FFE.`);
     const valeurs = champsFeuille(f, form.echiquiers);
-    // Commentaire toléré absent du formulaire, sauf s'il porte le nom de l'arbitre (aucun arbitre FFE choisi)
-    const inconnus = Object.keys(valeurs).filter((k) => !(k in form.champs) && !(k.endsWith('TextCommentaire') && f.arbitre?.ffe));
+    const inconnus = Object.keys(valeurs).filter((k) => !(k in form.champs) && !k.endsWith('TextCommentaire'));
     if (inconnus.length) throw new Error('Champs absents du formulaire FFE : ' + inconnus.map((k) => k.replace(PF, '')).join(', '));
+    // Certains formulaires (Nationale III Jeunes…) n'ont pas de champ commentaire : le capitaine doit le savoir avant l'envoi
+    const prevenu = sansCommentaire(eq.groupe);
+    if (PF + 'TextCommentaire' in form.champs) ecrire(cleSansCom(eq.groupe), false);
+    else {
+      ecrire(cleSansCom(eq.groupe), true);
+      delete valeurs[PF + 'TextCommentaire'];
+      if (reel && f.commentaire?.trim() && !prevenu) throw new Error('Le formulaire FFE de ce groupe n’a pas de champ commentaire : le commentaire ne peut pas être transmis. Rien n’a été enregistré. Appuyer de nouveau sur « Envoyer à la FFE » pour envoyer la feuille sans lui.');
+    }
     if (!reel) {
       e.bilanOk = true;
-      e.bilan = 'Test réussi : le formulaire FFE est ouvert sur le bon match et prêt à recevoir la feuille. Rien n’a été enregistré.';
+      e.bilan = 'Test réussi : le formulaire FFE est ouvert sur le bon match et prêt à recevoir la feuille. Rien n’a été enregistré.' + (sansCommentaire(eq.groupe) && f.commentaire?.trim() ? ' Attention : ce formulaire n’a pas de champ commentaire, le commentaire ne sera pas transmis.' : '');
       e.detail = Object.entries(valeurs).map(([k, v]) => `${k.replace(PF, '').replace('RepeaterBoards$', '')} = ${v}`).join('\n');
     } else {
       await etape('Enregistrement de la feuille', () => post('pv/etape', { cookie: form.cookie, cible: 'LinkCmdSave', confirme: true, champs: { ...form.champs, ...valeurs } }), 1);
-      e.bilanOk = /enregistr/i.test(form.texte) && !/erreur|incorrect|invalide|inconnu/i.test(form.texte);
+      e.bilanOk = confirme(form.texte);
       e.bilan = e.bilanOk ? 'La FFE confirme l’enregistrement.' : 'Réponse FFE à vérifier ci-dessous : l’enregistrement n’est pas confirmé.';
       e.detail = form.texte.slice(0, 700);
-      if (e.bilanOk) { f.envoyee = new Date().toLocaleString('fr-FR'); sauver(f); charger(pGroupe(eq.groupe), 0, true); }
+      if (e.bilanOk) { f.envoyee = new Date().toLocaleString('fr-FR'); ecrire(cle, f); charger(pGroupe(eq.groupe), 0, true); }
     }
   } catch (err) {
     e.erreur = err.message;

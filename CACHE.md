@@ -51,13 +51,13 @@ Le détail des parties d'une ronde suit une règle à part : une ronde entièrem
 
 Chaque lundi, le relais relit lui-même toutes les pages utiles sur le site FFE, pour que tout soit prêt le reste de la semaine.
 
-- **Horaire** : un passage toutes les 5 minutes, de 3h00 à 6h55 en hiver et de 4h00 à 7h55 en été (heure de Paris). Cloudflare ne connaît que l'heure universelle : 02h00 à 05h55 UTC.
-- **Rythme** : 4 pages par passage, soit jusqu'à 192 pages dans la matinée, pour une centaine nécessaires (95 lors de la première recharge). La recharge est étalée parce que le site FFE est lent et que Cloudflare limite la durée de chaque passage.
+- **Horaire** : un passage toutes les 5 minutes, de 3h00 à 7h55 en hiver et de 4h00 à 8h55 en été (heure de Paris). Cloudflare ne connaît que l'heure universelle : 02h00 à 06h55 UTC.
+- **Rythme** : 4 pages par passage, soit jusqu'à 240 pages dans la matinée, pour environ 175 nécessaires avec les groupes de jeunes. La recharge est étalée parce que le site FFE est lent et que Cloudflare limite la durée de chaque passage.
 - **En cas d'échec** d'une page : elle est remise en fin de file et retentée, 3 essais au plus.
 
 Ordre de traitement :
 
-1. La fiche du club de Domloup et les 6 groupes suivis.
+1. La fiche du club de Domloup et les 8 groupes suivis (6 adultes, 2 jeunes).
 2. Les fiches des clubs adverses, lues dans les classements, puis la feuille de match vierge et le calendrier (dates, lieux) de chaque groupe.
 3. Les listes de joueurs de toutes les équipes de ces groupes (Montauban 2, par exemple, dans le groupe de Domloup 5).
 4. Le détail des parties des rondes jouées. Les rondes terminées déjà copiées ne sont pas relues, sauf la dernière ronde jouée de chaque groupe, relue chaque lundi pour prendre les corrections tardives.
@@ -70,18 +70,18 @@ Les équipes d'un club adverse engagées dans un groupe non suivi ne sont pas ch
 
 | Donnée | Le téléphone redemande au relais après | Relecture du site FFE à la demande | Recharge du lundi |
 | --- | --- | --- | --- |
-| Groupe : calendrier, scores, classement | 10 minutes | Oui, si la copie du relais a plus de 10 minutes, ou par Actualiser | Oui, les 6 groupes |
+| Groupe : calendrier, scores, classement | 10 minutes | Oui, si la copie du relais a plus de 10 minutes, ou par Actualiser | Oui, les 8 groupes |
 | Fiche club : liste des équipes | 6 heures | Non, sauf si le relais n'a aucune copie | Oui, Domloup et tous les clubs adverses |
-| Liste des joueurs d'une équipe | 6 heures | Non, sauf si le relais n'a aucune copie | Oui, toutes les équipes des 6 groupes |
-| Feuille vierge et calendrier d'un groupe (pour imprimer) | 24 heures | Oui, si la copie du relais a plus de 24 heures | Oui, les 6 groupes |
+| Liste des joueurs d'une équipe | 6 heures | Non, sauf si le relais n'a aucune copie | Oui, toutes les équipes des 8 groupes |
+| Feuille vierge et calendrier d'un groupe (pour imprimer) | 24 heures | Oui, si la copie du relais a plus de 24 heures | Oui, les 8 groupes |
 | Détail d'une ronde terminée | 1 semaine | Non, sauf si le relais n'a aucune copie | Seulement la dernière ronde jouée de chaque groupe |
 | Détail d'une ronde incomplète | 10 minutes | Oui, si la copie du relais a plus de 10 minutes | Oui |
 
 ## Le bouton Actualiser et les cas particuliers
 
-Le bouton « Actualiser » fait relire sur le site FFE les 6 pages de groupe, et rien d'autre.
+Le bouton « Actualiser » fait relire sur le site FFE les pages de groupe de la catégorie affichée (Adultes ou Jeunes), et rien d'autre.
 
-- Le groupe affiché passe en premier, puis les autres un par un. Compter jusqu'à 30 secondes par groupe, soit environ 3 minutes pour tout quand le site est lent.
+- Le groupe affiché passe en premier, puis les autres un par un. Compter jusqu'à 30 secondes par groupe, soit environ 3 minutes pour les 6 groupes adultes quand le site est lent.
 - Chaque page relue remplace la copie du relais : les autres capitaines en profitent.
 - Il ne recharge ni les fiches de club, ni les listes de joueurs, ni le détail des rondes.
 

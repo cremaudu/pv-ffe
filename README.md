@@ -63,7 +63,8 @@ Tout se règle dans `public/config.js` :
 | `club.ref` | numéro du club à la FFE |
 | `club.logo` | image de l'en-tête, à déposer dans `public/` |
 | `couleurs` | bandeau du haut, couleur d'accent, boutons |
-| `groupes` | numéros des groupes où jouent les équipes du club |
+| `groupes` | numéros des groupes où jouent les équipes adultes du club |
+| `groupesJeunes` | numéros des groupes des équipes de jeunes, affichés à part (`[]` s'il n'y en a pas) |
 | `echiquiers` | nombre d'échiquiers tant que celui du groupe n'a pas été lu sur le site FFE |
 
 Deux éléments restent hors de ce fichier : l'icône de l'appli (`public/icon.svg`, à remplacer) et le nom du déploiement (`name` dans `wrangler.jsonc`), qui donne le début de l'adresse.

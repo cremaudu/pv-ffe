@@ -58,3 +58,6 @@ optgroup { font-style:normal; }
 h3.ronde .btn { font-size:14px; font-weight:600; padding:6px 10px; border-color:var(--jaune); }
 #modal .carte.large { max-width:640px; }
 table.detail { margin-top:14px; font-size:13px; }
+.cats { display:flex; margin-bottom:10px; border:1px solid var(--trait); border-radius:8px; overflow:hidden; }
+.cats button { flex:1; border:0; padding:10px; font-size:15px; background:var(--carte); color:var(--txt); }
+.cats button.actif { background:var(--jaune); color:#161616; font-weight:600; }

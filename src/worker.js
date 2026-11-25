@@ -238,7 +238,8 @@ function config(env) {
       entete: chaine('entete') ?? '#161616',
       saison: chaine('saison'),
       club: +js.match(/ref:\s*(\d+)/)[1],
-      groupes: js.match(/groupes:\s*\[([^\]]*)\]/)[1].split(',').map(Number).filter(Boolean),
+      // Adultes et jeunes
+      groupes: ['groupes', 'groupesJeunes'].flatMap((cle) => (js.match(new RegExp('\\b' + cle + ':\\s*\\[([^\\]]*)\\]'))?.[1] ?? '').split(',')).map(Number).filter(Boolean),
     };
   })());
 }
